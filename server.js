@@ -8,7 +8,7 @@ const PORT = process.env.PORT;
 
 // Middleware
 app.use(cors({
-    origin: 'https://frontendfs.netlify.app',
+    origin: 'https://frontendu4.netlify.app',
     credentials: true
 }));
 app.use(express.json());
