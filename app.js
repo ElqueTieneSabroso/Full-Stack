@@ -63,7 +63,8 @@ taskForm.addEventListener('submit', async (e) => {
             await loadTasks(); // Reload tasks from database
             showToast('Task added successfully', 'success');
         } else {
-            throw new Error('Failed to create task');
+            const errorText = await response.text();
+            throw new Error(errorText);
         }
     } catch (error) {
         console.error('Error creating task:', error);
