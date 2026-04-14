@@ -49,6 +49,7 @@ app.post('/api/tasks', async (req, res) => {
     } catch (error) {
         console.error('Error creating task:', error);
         res.status(500).json({ error: `Failed to create task: ${error.message}` });
+        console.error("ERROR BACKEND:", errorText);
     }
 });
 
