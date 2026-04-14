@@ -116,28 +116,58 @@ const renderTasks = () => {
 };
 
 // --- 3. UPDATE (Toggle Completion) ---
-window.toggleComplete = async (id) => {
+window.openEditTaskModal = (id) => {
+    const task = toDoList.find((item) => item.id === id);
+
+    if (!task) {
+        return;
+    }
+
+    document.getElementById('edit-task-id').value = task.id;
+    document.getElementById('edit-task-title').value = task.title;
+    document.getElementById('edit-task-priority').value = task.priority;
+    document.getElementById('edit-task-completed').checked = Boolean(task.isCompleted);
+
+    editTaskModal.show();
+};
+
+const taskForm = document.getElementById('task-form');
+
+taskForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const title = document.getElementById('task-title').value.trim();
+    const priority = document.getElementById('task-priority').value;
+
+    if (!title) {
+        showToast('El campo "Task" no puede estar vacío.', 'warning');
+        return;
+    }
+
     try {
-        const task = todoList.find(t => t.id === id);
-        const response = await fetch(`${API_URL}/${id}`, {
-            method: 'PUT',
+        const response = await fetch(API_URL, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ isCompleted: !task.isCompleted })
+            body: JSON.stringify({ title, priority })
         });
 
         if (response.ok) {
-            await loadTasks(); // Reload tasks from database
-            showToast('Task updated successfully', 'primary');
-        } else {
-            throw new Error('Failed to update task');
+            await fetchTasks();
+            showToast('Task added successfully!');
+            taskForm.reset();
+            return;
         }
+
+        const data = await response.json();
+        showToast(data.error || 'Error adding task.', 'danger');
     } catch (error) {
-        console.error('Error updating task:', error);
-        showToast('Failed to update task', 'danger');
+        console.error('Error adding task:', error.message);
+        showToast('Could not connect to the server.', 'danger');
     }
-};
+});
+
 
 // --- 4. DELETE ---
 window.deleteTask = async (id) => {
