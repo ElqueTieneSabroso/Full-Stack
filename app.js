@@ -3,58 +3,46 @@ const API_URL = 'https://full-stack-vssh.onrender.com/api/tasks';
 let todoList = [];
 let editTaskModal;
 
-// Toast
-const taskToastElement = document.querySelector('#task-toast');
-const taskToastMessage = document.querySelector('#task-toast-message');
+// TOAST
+const showToast = (msg, type = 'success') => {
+    const toastEl = document.getElementById('task-toast');
+    const toastMsg = document.getElementById('task-toast-message');
 
-let taskToast = null;
+    toastEl.className = `toast align-items-center text-bg-${type} border-0`;
+    toastMsg.textContent = msg;
 
-const showToast = (message, variant = 'success') => {
-    taskToastElement.className = `toast align-items-center text-bg-${variant} border-0`;
-    taskToastMessage.textContent = message;
-
-    if (!taskToast) {
-        taskToast = new bootstrap.Toast(taskToastElement, { delay: 2000 });
-    }
-
-    taskToast.show();
+    new bootstrap.Toast(toastEl).show();
 };
 
 // LOAD
 const loadTasks = async () => {
-    try {
-        const res = await fetch(API_URL);
-        const data = await res.json();
-        todoList = data;
-        renderTasks();
-    } catch (err) {
-        console.error(err);
-    }
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    todoList = data;
+    renderTasks();
 };
 
 // RENDER
 const renderTasks = () => {
-    const container = document.querySelector('#task-list');
+    const container = document.getElementById('task-list');
     container.innerHTML = '';
 
     todoList.forEach(task => {
-        const row = document.createElement('tr');
-
         let badge = '';
         if (task.priority === 'Low') badge = 'text-bg-success';
         if (task.priority === 'Medium') badge = 'text-bg-warning';
         if (task.priority === 'High') badge = 'text-bg-danger';
+
+        const row = document.createElement('tr');
 
         row.innerHTML = `
             <td>${task.id}</td>
             <td>${task.title}</td>
             <td><span class="badge ${badge}">${task.priority}</span></td>
             <td>
-                <button 
-                    class="btn btn-sm ${task.isCompleted ? 'btn-success' : 'btn-warning'}"
-                    onclick="toggleComplete(${task.id})"
-                >
-                    ${task.isCompleted ? '✔ Done' : '⏳ Pending'}
+                <button class="btn btn-sm ${task.isCompleted ? 'btn-success' : 'btn-warning'}"
+                    onclick="toggleComplete(${task.id})">
+                    ${task.isCompleted ? 'Done' : 'Pending'}
                 </button>
             </td>
             <td>
@@ -68,27 +56,21 @@ const renderTasks = () => {
 };
 
 // CREATE
-document.querySelector('#task-form').addEventListener('submit', async (e) => {
+document.getElementById('task-form').addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const title = document.querySelector('#task-input').value;
-    const priority = document.querySelector('#priority-input').value;
+    const title = document.getElementById('task-input').value;
+    const priority = document.getElementById('priority-input').value;
 
-    try {
-        const res = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, priority })
-        });
+    await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, priority })
+    });
 
-        if (res.ok) {
-            e.target.reset();
-            loadTasks();
-            showToast('Task added');
-        }
-    } catch (err) {
-        console.error(err);
-    }
+    e.target.reset();
+    loadTasks();
+    showToast('Task added');
 });
 
 // TOGGLE
@@ -143,7 +125,7 @@ document.getElementById('edit-task-form').addEventListener('submit', async (e) =
     showToast('Updated', 'primary');
 });
 
-// INIT MODAL
+// INIT
 editTaskModal = new bootstrap.Modal(document.getElementById('editTaskModal'));
 
 loadTasks();
