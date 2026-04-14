@@ -74,7 +74,7 @@ taskForm.addEventListener('submit', async (e) => {
 
 // --- 2. READ (Displaying data) ---
 const renderTasks = () => {
-    taskListContainer.innerHTML = ''; // Clear current UI
+    taskListContainer.innerHTML = '';
 
     todoList.forEach(task => {
         const taskRow = document.createElement('tr');
@@ -95,22 +95,29 @@ const renderTasks = () => {
                     ${task.title}
                 </span>
             </td>
-            <td><span class="badge ${tagPriority}">${task.priority}</span></td>
             <td>
-                <div class="form-check form-switch">
-                    <input 
-                        class="form-check-input" 
-                        type="checkbox" 
-                        role="switch" 
-                        ${task.isCompleted ? 'checked' : ''}
-                        onchange="toggleComplete(${task.id})"
-                    >
-                </div>
+                <span class="badge ${tagPriority}">
+                    ${task.priority}
+                </span>
             </td>
             <td>
-                <button class="btn btn-danger btn-sm" onclick="deleteTask(${task.id})">Delete</button>
+                <button 
+                    class="btn btn-sm ${task.isCompleted ? 'btn-success' : 'btn-warning'}"
+                    onclick="toggleComplete(${task.id})"
+                >
+                    ${task.isCompleted ? '✔ Done' : '⏳ Mark as done'}
+                </button>
+            </td>
+            <td>
+                <button 
+                    class="btn btn-danger btn-sm" 
+                    onclick="deleteTask(${task.id})"
+                >
+                    Delete
+                </button>
             </td>
         `;
+
         taskListContainer.appendChild(taskRow);
     });
 };
@@ -131,42 +138,28 @@ window.openEditTaskModal = (id) => {
     editTaskModal.show();
 };
 
-const taskForm = document.getElementById('task-form');
-
-taskForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-
-    const title = document.getElementById('task-title').value.trim();
-    const priority = document.getElementById('task-priority').value;
-
-    if (!title) {
-        showToast('El campo "Task" no puede estar vacío.', 'warning');
-        return;
-    }
-
+window.toggleComplete = async (id) => {
     try {
-        const response = await fetch(API_URL, {
-            method: 'POST',
+        const task = todoList.find(t => t.id === id);
+        const response = await fetch(`${API_URL}/${id}`, {
+            method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ title, priority })
+            body: JSON.stringify({ isCompleted: !task.isCompleted })
         });
 
         if (response.ok) {
-            await fetchTasks();
-            showToast('Task added successfully!');
-            taskForm.reset();
-            return;
+            await loadTasks(); // Reload tasks from database
+            showToast('Task updated successfully', 'primary');
+        } else {
+            throw new Error('Failed to update task');
         }
-
-        const data = await response.json();
-        showToast(data.error || 'Error adding task.', 'danger');
     } catch (error) {
-        console.error('Error adding task:', error.message);
-        showToast('Could not connect to the server.', 'danger');
+        console.error('Error updating task:', error);
+        showToast('Failed to update task', 'danger');
     }
-});
+};
 
 
 // --- 4. DELETE ---
