@@ -1,5 +1,5 @@
 // API Base URL
-const API_URL = 'http://localhost:3000/api/tasks';
+const API_URL = 'https://full-stack-vssh.onrender.com/api/tasks';
 
 // Global State
 let todoList = [];
