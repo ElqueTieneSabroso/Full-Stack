@@ -1,185 +1,149 @@
-// API Base URL
 const API_URL = 'https://full-stack-vssh.onrender.com/api/tasks';
 
-// Global State
 let todoList = [];
+let editTaskModal;
 
-// DOM Elements
-const taskForm = document.querySelector('#task-form');
-const taskInput = document.querySelector('#task-input');
-const priorityInput = document.querySelector('#priority-input');
-const taskListContainer = document.querySelector('#task-list');
+// Toast
 const taskToastElement = document.querySelector('#task-toast');
 const taskToastMessage = document.querySelector('#task-toast-message');
 
 let taskToast = null;
 
 const showToast = (message, variant = 'success') => {
-    if (!taskToastElement || !taskToastMessage || typeof bootstrap === 'undefined') return;
-
-    taskToastElement.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-primary', 'text-bg-warning');
-    taskToastElement.classList.add(`text-bg-${variant}`);
+    taskToastElement.className = `toast align-items-center text-bg-${variant} border-0`;
     taskToastMessage.textContent = message;
 
     if (!taskToast) {
-        taskToast = new bootstrap.Toast(taskToastElement, { delay: 2200 });
+        taskToast = new bootstrap.Toast(taskToastElement, { delay: 2000 });
     }
 
     taskToast.show();
 };
 
-// --- INITIALIZE: Load tasks from database ---
+// LOAD
 const loadTasks = async () => {
     try {
-        const response = await fetch(API_URL);
-        todoList = await response.json();
+        const res = await fetch(API_URL);
+        const data = await res.json();
+        todoList = data;
         renderTasks();
-    } catch (error) {
-        console.error('Error loading tasks:', error);
-        showToast('Failed to load tasks from database', 'danger');
+    } catch (err) {
+        console.error(err);
     }
 };
 
-// --- 1. CREATE ---
-taskForm.addEventListener('submit', async (e) => {
-    e.preventDefault(); // Prevents page reload
-    
-    const newTask = {
-        title: taskInput.value,
-        priority: priorityInput.value
-    };
-
-    try {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(newTask)
-        });
-
-        if (response.ok) {
-            taskForm.reset(); // Clear fields
-            await loadTasks(); // Reload tasks from database
-            showToast('Task added successfully', 'success');
-        } else {
-            const errorText = await response.text();
-            throw new Error(errorText);
-        }
-    } catch (error) {
-        console.error('Error creating task:', error);
-        showToast('Failed to add task to database', 'danger');
-    }
-});
-
-// --- 2. READ (Displaying data) ---
+// RENDER
 const renderTasks = () => {
-    taskListContainer.innerHTML = '';
+    const container = document.querySelector('#task-list');
+    container.innerHTML = '';
 
     todoList.forEach(task => {
-        const taskRow = document.createElement('tr');
+        const row = document.createElement('tr');
 
-        let tagPriority = '';
-        if (task.priority === 'Low') {
-            tagPriority = 'text-bg-success';
-        } else if (task.priority === 'Medium') {
-            tagPriority = 'text-bg-warning';
-        } else if (task.priority === 'High') {
-            tagPriority = 'text-bg-danger';
-        }
+        let badge = '';
+        if (task.priority === 'Low') badge = 'text-bg-success';
+        if (task.priority === 'Medium') badge = 'text-bg-warning';
+        if (task.priority === 'High') badge = 'text-bg-danger';
 
-        taskRow.innerHTML = `
+        row.innerHTML = `
             <td>${task.id}</td>
-            <td>
-                <span class="${task.isCompleted ? 'completed' : ''}">
-                    ${task.title}
-                </span>
-            </td>
-            <td>
-                <span class="badge ${tagPriority}">
-                    ${task.priority}
-                </span>
-            </td>
+            <td>${task.title}</td>
+            <td><span class="badge ${badge}">${task.priority}</span></td>
             <td>
                 <button 
                     class="btn btn-sm ${task.isCompleted ? 'btn-success' : 'btn-warning'}"
                     onclick="toggleComplete(${task.id})"
                 >
-                    ${task.isCompleted ? '✔ Done' : '⏳ Mark as done'}
+                    ${task.isCompleted ? '✔ Done' : '⏳ Pending'}
                 </button>
             </td>
             <td>
-                <button 
-                    class="btn btn-danger btn-sm" 
-                    onclick="deleteTask(${task.id})"
-                >
-                    Delete
-                </button>
+                <button class="btn btn-primary btn-sm" onclick="openEditTaskModal(${task.id})">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteTask(${task.id})">Delete</button>
             </td>
         `;
 
-        taskListContainer.appendChild(taskRow);
+        container.appendChild(row);
     });
 };
 
-// --- 3. UPDATE (Toggle Completion) ---
-window.openEditTaskModal = (id) => {
-    const task = toDoList.find((item) => item.id === id);
+// CREATE
+document.querySelector('#task-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-    if (!task) {
-        return;
+    const title = document.querySelector('#task-input').value;
+    const priority = document.querySelector('#priority-input').value;
+
+    try {
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, priority })
+        });
+
+        if (res.ok) {
+            e.target.reset();
+            loadTasks();
+            showToast('Task added');
+        }
+    } catch (err) {
+        console.error(err);
     }
+});
+
+// TOGGLE
+window.toggleComplete = async (id) => {
+    const task = todoList.find(t => t.id === id);
+
+    await fetch(`${API_URL}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isCompleted: !task.isCompleted })
+    });
+
+    loadTasks();
+};
+
+// DELETE
+window.deleteTask = async (id) => {
+    await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+    loadTasks();
+    showToast('Deleted', 'danger');
+};
+
+// OPEN MODAL
+window.openEditTaskModal = (id) => {
+    const task = todoList.find(t => t.id === id);
 
     document.getElementById('edit-task-id').value = task.id;
     document.getElementById('edit-task-title').value = task.title;
     document.getElementById('edit-task-priority').value = task.priority;
-    document.getElementById('edit-task-completed').checked = Boolean(task.isCompleted);
+    document.getElementById('edit-task-completed').checked = task.isCompleted;
 
     editTaskModal.show();
 };
 
-window.toggleComplete = async (id) => {
-    try {
-        const task = todoList.find(t => t.id === id);
-        const response = await fetch(`${API_URL}/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ isCompleted: !task.isCompleted })
-        });
+// UPDATE
+document.getElementById('edit-task-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-        if (response.ok) {
-            await loadTasks(); // Reload tasks from database
-            showToast('Task updated successfully', 'primary');
-        } else {
-            throw new Error('Failed to update task');
-        }
-    } catch (error) {
-        console.error('Error updating task:', error);
-        showToast('Failed to update task', 'danger');
-    }
-};
+    const id = document.getElementById('edit-task-id').value;
+    const title = document.getElementById('edit-task-title').value;
+    const priority = document.getElementById('edit-task-priority').value;
+    const isCompleted = document.getElementById('edit-task-completed').checked;
 
+    await fetch(`${API_URL}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, priority, isCompleted })
+    });
 
-// --- 4. DELETE ---
-window.deleteTask = async (id) => {
-    try {
-        const response = await fetch(`${API_URL}/${id}`, {
-            method: 'DELETE'
-        });
+    editTaskModal.hide();
+    loadTasks();
+    showToast('Updated', 'primary');
+});
 
-        if (response.ok) {
-            await loadTasks(); // Reload tasks from database
-            showToast('Task deleted successfully', 'danger');
-        } else {
-            throw new Error('Failed to delete task');
-        }
-    } catch (error) {
-        console.error('Error deleting task:', error);
-        showToast('Failed to delete task', 'danger');
-    }
-};
+// INIT MODAL
+editTaskModal = new bootstrap.Modal(document.getElementById('editTaskModal'));
 
-// Load tasks when page loads
 loadTasks();
