@@ -11,6 +11,7 @@ app.use(cors({
     origin: 'https://frontendu4.netlify.app',
     credentials: true
 }));
+app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
